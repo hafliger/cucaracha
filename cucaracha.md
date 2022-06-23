@@ -1,12 +1,5 @@
-// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
-// © juanhafliger
-
 //@version=5
 indicator(title = "CUCARACHA - SETUP A/B + BUY e SELL signal", shorttitle="CUCARACHA", overlay=true)
-
-// EMAS 
-// Medias Móveis Exponenciais de 9 e 90 para o SETUP A / SETUP B e Pernadas
-// em conjunto com MACD nos ajuda a visualizar se há um momentum vendedor ou comprador
 slowlenght = input.int(defval=90, minval=1, title="Média Lenta")
 fastlenght = input.int(defval=9, minval=1, title="Média Rápida")
 
@@ -15,17 +8,6 @@ fastEMA = ta.ema(close, fastlenght)
 
 plot(slowEMA, title="EMA Lenta", color=color.red, linewidth=2)
 plot(fastEMA, title="EMAP Rápida", color=color.green, linewidth=2)
-
-
-
-// CURVA DE REGRESSÃO LINEAR
-// Curva de regressão linear. Uma linha que melhor se adapta aos preços especificados 
-// ao longo de um período de tempo definido pelo usuário. Ela é calculada usando o método 
-// dos mínimos quadrados. O resultado desta função é calculado utilizando a fórmula: 
-// linreg = intercept + slope * (length - 1 - offset)
-// onde intercepção e inclinação são os valores calculados com o método dos mínimos quadrados na série `source'.
-// se ha uma relacao ascendente entre as duas variaves temos um vieis de alta
-// se há uma relacao descendente entre as duvas variáveis temos um vies de baixa
 
 lengthRL = input.int(defval=50, minval=1, title="ATR") // Comprimento
 offset = 0 // Offset
@@ -36,13 +18,6 @@ eq= lsma-lsma2
 deltaRL = lsma+eq
 
 plot(deltaRL, color=#fffffF4a, linewidth=3, style=plot.style_stepline)
-
-// ATR - Averange True Range
-// média de amplitude de variação (muito usado em FOREX)
-// retorna o RMA do alcance verdadeiro. 
-// O alcance verdadeiro é máximo (máxima - mínima, abs(máxima - fechamento[1]), abs(mínima - fechamento [1])).
-// Mede a volatidade, levando em conta qualquer gap no movimento do preço
-// o calculo do atr é baseado em 14 periodos, mas aqui usaremos 1
 
 length = 1 // Periodo ATR
 mult = 2.0 // Periodo Multiplicador
