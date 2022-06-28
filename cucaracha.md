@@ -1,6 +1,7 @@
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // © juanhafliger
 
+
 //@version=5
 indicator(title = "CUCARACHA 0.4.1", shorttitle="CUCARACHA 0.4.1", overlay=true)
 
@@ -19,11 +20,12 @@ stochD = ta.stoch(close, high, low, 21)
 //------------------
 [vwap, upper, lower] = ta.vwap(open, 15, 1.0)
 
+
 //==================
 // EMAS 9 AND 90
 //------------------
-slowlenght = input.int(defval=90, minval=1, title="Média Lenta")
-fastlenght = input.int(defval=9, minval=1, title="Média Rápida")
+slowlenght = input.int(defval=90, minval=1, title="SLOW EMA")
+fastlenght = input.int(defval=9, minval=1, title="FAST EMA")
 
 slowEMA = ta.ema(close, slowlenght)
 fastEMA = ta.ema(close, fastlenght)
@@ -35,9 +37,9 @@ plot(fastEMA, title="FAST EMA", color=color.green, linewidth=2)
 // MACD 
 //------------------
 //Inputs
-fastLen = input.int(defval=12, minval=1, title="Média Rápida")
-slowLen = input.int(defval=26, minval=1, title="Média lenta")
-signalLen = input.int(defval=9, minval=1, title="Sinal")
+fastLen = input.int(defval=12, minval=1, title="MACD: FAST EMA")
+slowLen = input.int(defval=26, minval=1, title="MACD: SLOW EMA")
+signalLen = input.int(defval=9, minval=1, title="MACD: SIGNAL")
 
 // MACD conditions
 fast_ma = ta.ema(close, fastLen)
@@ -48,7 +50,6 @@ macdHistogram = macd - signal
 
 buyMACD = ta.crossover(macd, signal) 
 sellMACD = ta.crossunder(macd, signal)
-classOfMACD = macdHistogram > 0 ? "A" : "B"
 
 // PLOT THE SIGNAL MACD
 //------------------
@@ -57,6 +58,7 @@ sell = sellMACD and signal < 0
 
 plotshape(buy, title="BUY MACD CROSS", text="", location=location.abovebar, style=shape.cross, size=size.small, color=color.green, textcolor=color.white)
 plotshape(sell, title="SELL MACD CROSS",text="", location=location.belowbar, style=shape.cross, size=size.small, color=color.red, textcolor=color.white)
+
 
 //==================
 // PLOT THE SIGNAL PRICE EXHAUSTION
@@ -67,6 +69,7 @@ sellX = rsi > 70 and stochD > 80 and close > upper and macdHistogram > 0.001 and
 plotshape(buyX, title="BUY EXHAUSTION", text="", location=location.belowbar, style=shape.triangleup, size=size.tiny, color=color.green, textcolor=color.white)
 plotshape(sellX, title="SELL EXHAUSTION",text="", location=location.abovebar, style=shape.triangledown, size=size.tiny, color=color.red, textcolor=color.white)
 //===========
+
 
 //==================
 // LINEAR REGRESSION
@@ -89,6 +92,7 @@ showLabels = true // Exibe ou nao o HINT conforme o BUY e SELL Signal
 
 atr = mult * ta.atr(length)
  
+
 longStop = ta.highest(close, length) - atr
 longStopPrev = nz(longStop[1], longStop) 
 longStop := close[1] > longStopPrev ? math.max(longStop, longStopPrev) : longStop
