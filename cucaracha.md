@@ -2,7 +2,7 @@
 // © juanhafliger
 
 //@version=5
-indicator(title = "CUCARACHA - v4.1", shorttitle="CUCARACHAv4.1", overlay=true)
+indicator(title = "CUCARACHA 0.4.1", shorttitle="CUCARACHA 0.4.1", overlay=true)
 
 //==================
 // RSI
