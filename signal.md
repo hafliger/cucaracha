@@ -1,3 +1,4 @@
+
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // © juanhafliger
 
@@ -13,12 +14,12 @@ var SectionEntryValues = "Valor de Entrada"
 var SectionTargetsValues = "Alvos"
 var SectionAlarm = "ATIVAÇÃO DO DISPARO"
 
-longShortOption = input.string(defval="LONG", title="Estratégia", options=["LONG","SHORT", "SPOT"] , inline = "11", group = SectionInfos)
+longShortOption = input.string(defval="LONG", title="Mod", options=["LONG","SHORT", "SPOT"] , inline = "11", group = SectionInfos)
 exchangeOption = syminfo.prefix
 coinOption = syminfo.ticker
 currentPrice = str.tostring(close)
 investOption = "10%" //input.string(defval="5%", title="Invt", options=["5%","10%", "15%", "20%"] , inline = "22", group = SectionInfos)
-levarageOption = input.string(defval="5x", title="Alavancagem", options=["3x", "5x","10x", "20x", "30x", "40x", "Sem alavancagem"] , inline = "11", group = SectionInfos)
+levarageOption = input.string(defval="5x", title="X", options=["3x", "5x","10x", "20x", "30x", "40x", "Sem alavancagem"] , inline = "11", group = SectionInfos)
 entryMinOption = input.float(defval=base, title="Min", inline = "33", group = SectionEntryValues)
 entryMaxOption = input.float(defval=base, title="Max", inline = "33", group = SectionEntryValues)
 stopLossOption = input.float(defval=base, title="STOP LOSS", group = SectionTargetsValues)
@@ -31,6 +32,7 @@ target6Option = input.float(defval=base, title="Alvo 6", group = SectionTargetsV
 
 trigerValue = input.float(defval=-1, title="No preço",  inline="55", group = SectionAlarm)
 activateSignal = input.bool(defval=false, title="Imediato!", inline="55", group = SectionAlarm)
+chartOption = input(defval="", title="Análise", inline="11", group=SectionInfos)
 
 iconStategy = longShortOption == "SHORT" ? "🐻":"🐮" 
 longShortText = "\n  "+iconStategy+" *Estratégia*: *"+longShortOption+"*"
@@ -46,11 +48,10 @@ textTarget3 = target3Option != -1 ? "\n ⎿  Alvo 3 --- " +  str.tostring(target
 textTarget4 = target4Option != -1 ? "\n ⎿  Alvo 4 --- " +  str.tostring(target4Option): na
 textTarget5 = target5Option != -1 ? "\n ⎿  Alvo 5 --- " +  str.tostring(target5Option): na
 textTarget6 = target6Option != -1 ? "\n ⎿  Alvo 6 --- " +  str.tostring(target6Option): na
-alertMessage = "\n --- ⌁ --- \n \n 🤖 Fala pessoal! Temos um novo sinal! 💰💰💰\n \n --- ⌁ --- \n "+longShortText+""+exchangeText+""+coinText+""+investText+""+levarageText+""+entryText+""+stopLossText+"\n  🎯 Alvos "+textTarget1+""+textTarget2+""+textTarget3+""+textTarget4+""+textTarget5 +""+textTarget6+"\n  ⚠️ Preço atual: "+currentPrice+" \n \n --- ⌁ --- \n 💡Avalie o timeframe acima e abaixo antes de fazer uma entrada. \n 💡Nunca faça uma entrada sem definir seu STOP LOSS.\n --- ⌁ --- \n  \n  📊 Análise: https://www.tradingview.com/x/xE7NVUZs/"
+textChart = chartOption != "" ? "\n  📊 Análise: "+chartOption : na
+alertMessage = "\n --- ⌁ --- \n \n 🤖 Fala pessoal! Temos um novo sinal! 💰💰💰\n \n --- ⌁ --- \n "+longShortText+""+exchangeText+""+coinText+""+investText+""+levarageText+""+entryText+""+stopLossText+"\n  🎯 Alvos "+textTarget1+""+textTarget2+""+textTarget3+""+textTarget4+""+textTarget5 +""+textTarget6+"\n  ⚠️ Preço atual: "+currentPrice+" \n \n --- ⌁ --- \n 💡Avalie o timeframe acima e abaixo antes de fazer uma entrada. \n 💡Nunca faça uma entrada sem definir seu STOP LOSS.\n --- ⌁ --- \n  "+ textChart 
 
 sendsignal = activateSignal or (ta.cross(close, trigerValue))
 
 if sendsignal
     alert(message=alertMessage, freq=alert.freq_once_per_bar_close)
-    
-    
