@@ -1,0 +1,240 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © trademate2000
+
+//@version=5
+strategy("juanhafliger", process_orders_on_close=true, overlay = true)
+
+//-------------------------------------------
+// CONFIGS AND VARIABLES OF THE STRATEGY
+//-------------------------------------------
+
+// RANGE TIME
+//-------------------------
+
+start = input.time(timestamp("2022-06-12T00:00:00"), title="Start Date",group="============ BACKTEST RANGE ============")
+finish = input.time(timestamp("2022-07-12T00:00:00"), title="Finish Date")
+
+//Configure Date window
+dateRange = time >= start and time <= finish ? true : false
+
+// INITIAL VALUES
+//-------------------------
+var tp1reached = false
+var profit1 = 0.0
+var profit2 = 0.0
+var profit3 = 0.0
+var profit4 = 0.0
+var profit5 = 0.0
+
+var tp1 = 0.0
+
+
+// TAKE PROFIT TARGETS
+//-------------------------
+
+tp1per = input.float(defval = 1.0, minval = 0.0, title="TP 1", group = "Strategy Settings", inline = "tp1per")
+tp1per1 = input.float(defval = 50.0, minval = 0.0, title=" - Booked % ", group = "Strategy Settings", inline = "tp1per")
+
+tp2per = input.float(defval = 1.6, minval = 0.0, title="TP 2", group = "Strategy Settings", inline = "tp2per")
+tp2per1 = input.float(defval = 20.0, minval = 0.0, title=" - Booked % ", group = "Strategy Settings", inline = "tp2per")
+
+tp3per = input.float(defval = 2.0, minval = 0.0, title="TP 3", group = "Strategy Settings", inline = "tp3per")
+tp3per1 = input.float(defval = 10.0, minval = 0.0, title=" - Booked % ", group = "Strategy Settings", inline = "tp3per")
+
+tp4per = input.float(defval = 3.0, minval = 0.0, title="TP 4", group = "Strategy Settings", inline = "tp4per")
+tp4per1 = input.float(defval = 10.0, minval = 0.0, title=" - Booked % ", group = "Strategy Settings", inline = "tp4per")
+
+tp5per = input.float(defval = 4.0, minval = 0.0, title="TP 5", group = "Strategy Settings", inline = "tp5per")
+
+usece = input.bool(defval=true, title="Use Chandelier Exit")
+
+ema1src = input.source(defval=close,title="Fast EMA", group = "EMA Settings")
+ema1len = input.int(defval=9, minval=1, title="Fast EMA", group = "EMA Settings")
+
+ema2src = input.source(defval=close,title="Slow EMA", group = "EMA Settings")
+ema2len = input.int(defval=90, minval=1, title="Slow EMA", group = "EMA Settings")
+
+ema1 = ta.ema(ema1src,ema1len)
+ema2 = ta.ema(ema2src,ema2len)
+
+plot(ema1,color = color.yellow, title="Fast EMA", linewidth=2)
+plot(ema2,color = color.white, title="Slow EMA", linewidth=2)
+
+
+ma(source, length, type) =>
+    switch type
+        "SMA" => ta.sma(source, length)
+        "Bollinger Bands" => ta.sma(source, length)
+        "EMA" => ta.ema(source, length)
+        "SMMA (RMA)" => ta.rma(source, length)
+        "WMA" => ta.wma(source, length)
+        "VWMA" => ta.vwma(source, length)
+
+rsiLengthInput = input.int(25, minval=1, title="RSI Length", group="RSI Settings")
+rsiSourceInput = input.source(close, "Source", group="RSI Settings")
+maTypeInput = input.string("SMA", title="MA Type", options=["SMA", "Bollinger Bands", "EMA", "SMMA (RMA)", "WMA", "VWMA"], group="MA Settings")
+maLengthInput = input.int(50, title="MA Length", group="MA Settings")
+bbMultInput = input.float(2.0, minval=0.001, maxval=50, title="BB StdDev", group="MA Settings")
+
+up = ta.rma(math.max(ta.change(rsiSourceInput), 0), rsiLengthInput)
+down = ta.rma(-math.min(ta.change(rsiSourceInput), 0), rsiLengthInput)
+rsi = down == 0 ? 100 : up == 0 ? 0 : 100 - (100 / (1 + up / down))
+rsiMA = ma(rsi, maLengthInput, maTypeInput)
+
+
+
+//ADX
+len = input(14, group = "ADX")
+th = input(20, group = "ADX")
+adxvalue = input.float(defval=20, minval=0, title="ADX hreshold", group = "ADX")
+TrueRange = math.max(math.max(high - low, math.abs(high - nz(close[1]))), math.abs(low - nz(close[1])))
+DirectionalMovementPlus = high - nz(high[1]) > nz(low[1]) - low ? math.max(high - nz(high[1]), 0) : 0
+DirectionalMovementMinus = nz(low[1]) - low > high - nz(high[1]) ? math.max(nz(low[1]) - low, 0) : 0
+
+SmoothedTrueRange = 0.0
+SmoothedTrueRange := nz(SmoothedTrueRange[1]) - nz(SmoothedTrueRange[1]) / len + TrueRange
+
+SmoothedDirectionalMovementPlus = 0.0
+SmoothedDirectionalMovementPlus := nz(SmoothedDirectionalMovementPlus[1]) - nz(SmoothedDirectionalMovementPlus[1]) / len + DirectionalMovementPlus
+
+SmoothedDirectionalMovementMinus = 0.0
+SmoothedDirectionalMovementMinus := nz(SmoothedDirectionalMovementMinus[1]) - nz(SmoothedDirectionalMovementMinus[1]) / len + DirectionalMovementMinus
+
+DIPlus = SmoothedDirectionalMovementPlus / SmoothedTrueRange * 100
+DIMinus = SmoothedDirectionalMovementMinus / SmoothedTrueRange * 100
+
+
+
+//Chandelier Exit
+length = input(title='ATR Period', defval=1, group = "Chandelier")
+mult = input.float(title='ATR Multiplier', step=0.1, defval=2.4, group = "Chandelier")
+showLabels = input(title='Show Buy/Sell Labels ?', defval=true, group = "Chandelier")
+useClose = input(title='Use Close Price for Extremums ?', defval=true, group = "Chandelier")
+highlightState = input(title='Highlight State ?', defval=true, group = "Chandelier")
+
+atr = mult * ta.atr(length)
+
+longStop = (useClose ? ta.highest(close, length) : ta.highest(length)) - atr
+longStopPrev = nz(longStop[1], longStop)
+longStop := close[1] > longStopPrev ? math.max(longStop, longStopPrev) : longStop
+
+shortStop = (useClose ? ta.lowest(close, length) : ta.lowest(length)) + atr
+shortStopPrev = nz(shortStop[1], shortStop)
+shortStop := close[1] < shortStopPrev ? math.min(shortStop, shortStopPrev) : shortStop
+
+var int dir = 1
+dir := close > shortStopPrev ? 1 : close < longStopPrev ? -1 : dir
+
+var color longColor = color.green
+var color shortColor = color.red
+
+longStopPlot = plot(dir == 1 ? longStop : na, title='Long Stop', style=plot.style_linebr, linewidth=2, color=color.new(longColor, 0))
+buySignal = dir == 1 and dir[1] == -1
+plotshape(buySignal ? longStop : na, title='Long Stop Start', location=location.absolute, style=shape.circle, size=size.tiny, color=color.new(longColor, 0))
+
+shortStopPlot = plot(dir == 1 ? na : shortStop, title='Short Stop', style=plot.style_linebr, linewidth=2, color=color.new(shortColor, 0))
+sellSignal = dir == -1 and dir[1] == 1
+plotshape(sellSignal ? shortStop : na, title='Short Stop Start', location=location.absolute, style=shape.circle, size=size.tiny, color=color.new(shortColor, 0))
+
+midPricePlot = plot(ohlc4, title='', style=plot.style_circles, linewidth=0, display=display.none, editable=false)
+
+longFillColor = highlightState ? dir == 1 ? longColor : na : na
+shortFillColor = highlightState ? dir == -1 ? shortColor : na : na
+fill(midPricePlot, longStopPlot, title='Long State Filling', color=longFillColor, transp=90)
+fill(midPricePlot, shortStopPlot, title='Short State Filling', color=shortFillColor, transp=90)
+
+
+emalong = close>ema1 and close>ema2 and ema1>ema2
+emashort = close<ema1 and close<ema2 and ema1<ema2
+
+adxlong = DIPlus>adxvalue
+adxshort = DIMinus>adxvalue
+
+celong = dir==1
+ceshort = dir!=1
+
+rsilong = rsi>rsiMA
+rsishort = rsi<rsiMA
+
+
+var entry = 0.0
+var level = 0
+if (high>profit1 and strategy.position_size>0) or (low<profit1 and strategy.position_size<0)
+    level:=math.max(1,level[1])
+if (high>profit2 and strategy.position_size>0) or (low<profit2 and strategy.position_size<0)
+    level:=math.max(2,level[1])
+if (high>profit3 and strategy.position_size>0) or (low<profit3 and strategy.position_size<0)
+    level:=math.max(3,level[1])
+if (high>profit4 and strategy.position_size>0) or (low<profit4 and strategy.position_size<0)
+    level:=math.max(4,level[1])
+if (high>profit5 and strategy.position_size>0) or (low<profit5 and strategy.position_size<0)
+    level:=math.max(5,level[1])
+
+longsl = usece or strategy.position_size==0 ? longStop : level==0 ? longStop : level==1 ? entry :  level==2 ? profit1 :  level==3 ? profit2 :  level==4 ? profit3 : profit4
+shortsl = usece or strategy.position_size==0 ? shortStop : level==0 ? shortStop : level==1 ? entry :  level==2 ? profit1 :  level==3 ? profit2 :  level==4 ? profit3 : profit4
+
+
+longcond = emalong and adxlong and celong and rsilong and dateRange
+shortcond = emashort and adxshort and ceshort and rsishort and dateRange
+
+
+//
+
+longentrycode = input.string(defval="",title="Long Entry Code", group="Strategy Messages")
+longexitcode = input.string(defval="",title="Long Exit Code", group="Strategy Messages")
+shortentrycode = input.string(defval="",title="Short Entry Code", group="Strategy Messages")
+shortexitcode = input.string(defval="",title="Short Exit Code", group="Strategy Messages")
+
+
+qv = strategy.position_size
+
+a=20
+
+strategy.exit("exit1", "Long", qty_percent = tp1per1, limit = profit1, stop = longsl, alert_message = longexitcode) 
+strategy.exit("exit1", "Short", qty_percent = tp1per1, limit = profit1, stop = shortsl, alert_message = shortexitcode)
+
+strategy.exit("exit2", "Long", qty_percent = tp2per1, limit = profit2, stop = longsl, alert_message = longexitcode) 
+strategy.exit("exit2", "Short", qty_percent = tp2per1, limit = profit2, stop = shortsl, alert_message = shortexitcode)
+
+strategy.exit("exit3", "Long", qty_percent = tp3per1, limit = profit3, stop = longsl, alert_message = longexitcode) 
+strategy.exit("exit3", "Short", qty_percent = tp3per1, limit = profit3, stop = shortsl, alert_message = shortexitcode)
+
+strategy.exit("exit4", "Long", qty_percent = tp4per1, limit = profit4, stop = longsl, alert_message = longexitcode) 
+strategy.exit("exit4", "Short", qty_percent = tp4per1, limit = profit4, stop = shortsl, alert_message = shortexitcode)
+
+strategy.exit("exit5", "Long", qty_percent = 100, limit = profit5, stop = longsl, alert_message = longexitcode) 
+strategy.exit("exit5", "Short", qty_percent = 100, limit = profit5, stop = shortsl, alert_message = shortexitcode)  
+
+
+if longcond and strategy.position_size==0 and strategy.position_size[1]<=0
+    tp1reached:=false
+    profit1 := close + tp1per*(close-longsl) 
+    profit2 := close + tp2per*(close-longsl)
+    profit3 := close + tp3per*(close-longsl)
+    profit4 := close + tp4per*(close-longsl)
+    profit5 := close + tp5per*(close-longsl)
+    level:=0
+    entry:=close
+    longsl:=longStop
+
+    strategy.entry("Long", strategy.long, alert_message = longentrycode)
+
+
+if shortcond and strategy.position_size==0 and strategy.position_size[1]>=0
+    tp1reached:=false
+    profit1 := close - tp1per*(shortsl-close)
+    profit2 := close - tp2per*(shortsl-close)
+    profit3 := close - tp3per*(shortsl-close)
+    profit4 := close - tp4per*(shortsl-close)
+    profit5 := close - tp5per*(shortsl-close)
+    level:=0
+    entry:=close
+    shortsl := shortStop
+
+    strategy.entry("Short", strategy.short, alert_message = shortentrycode)
+    
+    
+ 
+    
+    
+ 
